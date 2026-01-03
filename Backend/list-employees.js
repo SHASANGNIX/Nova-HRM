@@ -78,7 +78,9 @@ function getAllEmployees(token) {
         console.log(`\n👥 Total Employees: ${employees.length}\n`);
 
         employees.forEach((employee, index) => {
-          console.log(`${index + 1}. ${employee.name}`);
+          console.log(
+            `${index + 1}. ${employee.name} (ID: ${employee.employee_id})`
+          );
           console.log(`   📧 Email: ${employee.email}`);
           console.log(`   🏢 Department: ${employee.department}`);
           console.log(`   💼 Designation: ${employee.designation}`);

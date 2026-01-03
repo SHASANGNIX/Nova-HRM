@@ -1,14 +1,15 @@
 // frontend/src/pages/EmployeeDashboard.jsx
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import './EmployeeDashboard.css';
-import AttendanceCard from '../components/AttendanceCard';
-import TaskList from '../components/TaskList';
-import ScoreCard from '../components/ScoreCard';
-import CalendarView from '../components/CalendarView';
-import './EmployeeDashboard.css';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import "./EmployeeDashboard.css";
+import AttendanceCard from "../components/AttendanceCard";
+import TaskList from "../components/TaskList";
+import ScoreCard from "../components/ScoreCard";
+import CalendarView from "../components/CalendarView";
+import LeaveRequest from "../components/LeaveRequest";
+import "./EmployeeDashboard.css";
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "http://localhost:5000/api";
 
 function EmployeeDashboard({ onLogout }) {
   const [user, setUser] = useState(null);
@@ -19,30 +20,37 @@ function EmployeeDashboard({ onLogout }) {
   const [leaves, setLeaves] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const getAuthHeaders = () => ({
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
   });
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const userData = JSON.parse(localStorage.getItem('user'));
+      const userData = JSON.parse(localStorage.getItem("user"));
       setUser(userData);
 
       // Fetch all data
-      const [attendanceRes, assignedTasksRes, personalTasksRes, scoreRes, leavesRes, holidaysRes] = await Promise.all([
+      const [
+        attendanceRes,
+        assignedTasksRes,
+        personalTasksRes,
+        scoreRes,
+        leavesRes,
+        holidaysRes,
+      ] = await Promise.all([
         axios.get(`${API_URL}/attendance/today`, getAuthHeaders()),
         axios.get(`${API_URL}/tasks/assigned`, getAuthHeaders()),
         axios.get(`${API_URL}/tasks/personal`, getAuthHeaders()),
         axios.get(`${API_URL}/scores/today`, getAuthHeaders()),
         axios.get(`${API_URL}/leaves/history`, getAuthHeaders()),
-        axios.get(`${API_URL}/leaves/holidays`, getAuthHeaders())
+        axios.get(`${API_URL}/leaves/holidays`, getAuthHeaders()),
       ]);
 
       setAttendance(attendanceRes.data);
@@ -52,7 +60,7 @@ function EmployeeDashboard({ onLogout }) {
       setLeaves(leavesRes.data);
       setHolidays(holidaysRes.data);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -60,32 +68,45 @@ function EmployeeDashboard({ onLogout }) {
 
   const handleTaskUpdate = async (taskId, status, isPersonal = false) => {
     try {
-      const endpoint = isPersonal 
+      const endpoint = isPersonal
         ? `${API_URL}/tasks/personal/${taskId}`
         : `${API_URL}/tasks/assigned/${taskId}`;
-      
+
       await axios.put(endpoint, { status }, getAuthHeaders());
-      
+
       // Refresh data
       if (isPersonal) {
-        const res = await axios.get(`${API_URL}/tasks/personal`, getAuthHeaders());
+        const res = await axios.get(
+          `${API_URL}/tasks/personal`,
+          getAuthHeaders()
+        );
         setPersonalTasks(res.data);
       } else {
-        const res = await axios.get(`${API_URL}/tasks/assigned`, getAuthHeaders());
+        const res = await axios.get(
+          `${API_URL}/tasks/assigned`,
+          getAuthHeaders()
+        );
         setAssignedTasks(res.data.tasks || []);
       }
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error("Error updating task:", error);
     }
   };
 
   const handleAddPersonalTask = async (title, description) => {
     try {
-      await axios.post(`${API_URL}/tasks/personal`, { title, description }, getAuthHeaders());
-      const res = await axios.get(`${API_URL}/tasks/personal`, getAuthHeaders());
+      await axios.post(
+        `${API_URL}/tasks/personal`,
+        { title, description },
+        getAuthHeaders()
+      );
+      const res = await axios.get(
+        `${API_URL}/tasks/personal`,
+        getAuthHeaders()
+      );
       setPersonalTasks(res.data);
     } catch (error) {
-      console.error('Error adding task:', error);
+      console.error("Error adding task:", error);
     }
   };
 
@@ -98,33 +119,48 @@ function EmployeeDashboard({ onLogout }) {
       <header className="dashboard-header">
         <div>
           <h1>Welcome, {user?.name}!</h1>
-          <p>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p>
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
         </div>
-        <button onClick={onLogout} className="logout-btn">Logout</button>
+        <button onClick={onLogout} className="logout-btn">
+          Logout
+        </button>
       </header>
 
       <div className="dashboard-tabs">
-        <button 
-          className={activeTab === 'overview' ? 'active' : ''}
-          onClick={() => setActiveTab('overview')}
+        <button
+          className={activeTab === "overview" ? "active" : ""}
+          onClick={() => setActiveTab("overview")}
         >
           Overview
         </button>
-        <button 
-          className={activeTab === 'tasks' ? 'active' : ''}
-          onClick={() => setActiveTab('tasks')}
+        <button
+          className={activeTab === "tasks" ? "active" : ""}
+          onClick={() => setActiveTab("tasks")}
         >
           Tasks
         </button>
-        <button 
-          className={activeTab === 'calendar' ? 'active' : ''}
-          onClick={() => setActiveTab('calendar')}
+        <button
+          className={activeTab === "calendar" ? "active" : ""}
+          onClick={() => setActiveTab("calendar")}
         >
           Calendar
         </button>
+        <button
+          className={activeTab === "leave" ? "active" : ""}
+          onClick={() => setActiveTab("leave")}
+        >
+          Leave Requests
+        </button>
       </div>
 
-      {activeTab === 'overview' && (
+      {activeTab === "overview" && (
         <div className="dashboard-grid">
           <div className="dashboard-row">
             <AttendanceCard attendance={attendance} />
@@ -133,8 +169,8 @@ function EmployeeDashboard({ onLogout }) {
 
           <div className="dashboard-section">
             <h2>Today's Tasks</h2>
-            <TaskList 
-              tasks={assignedTasks.slice(0, 5)} 
+            <TaskList
+              tasks={assignedTasks.slice(0, 5)}
               personalTasks={personalTasks.slice(0, 5)}
               onTaskUpdate={handleTaskUpdate}
               onAddTask={handleAddPersonalTask}
@@ -144,10 +180,10 @@ function EmployeeDashboard({ onLogout }) {
         </div>
       )}
 
-      {activeTab === 'tasks' && (
+      {activeTab === "tasks" && (
         <div className="dashboard-section full-width">
-          <TaskList 
-            tasks={assignedTasks} 
+          <TaskList
+            tasks={assignedTasks}
             personalTasks={personalTasks}
             onTaskUpdate={handleTaskUpdate}
             onAddTask={handleAddPersonalTask}
@@ -155,12 +191,15 @@ function EmployeeDashboard({ onLogout }) {
         </div>
       )}
 
-      {activeTab === 'calendar' && (
+      {activeTab === "calendar" && (
         <div className="dashboard-section full-width">
-          <CalendarView 
-            leaves={leaves}
-            holidays={holidays}
-          />
+          <CalendarView leaves={leaves} holidays={holidays} />
+        </div>
+      )}
+
+      {activeTab === "leave" && (
+        <div className="dashboard-section full-width">
+          <LeaveRequest />
         </div>
       )}
     </div>

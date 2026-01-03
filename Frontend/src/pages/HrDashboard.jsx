@@ -35,9 +35,11 @@ function HrDashboard({ onLogout }) {
   const [employeeDetails, setEmployeeDetails] = useState(null);
   const [bestEmployee, setBestEmployee] = useState(null);
   const [leaveRequests, setLeaveRequests] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("employees");
   const [showAddEmployeeForm, setShowAddEmployeeForm] = useState(false);
+  const [showAssignTaskForm, setShowAssignTaskForm] = useState(false);
   const [newEmployee, setNewEmployee] = useState({
     email: "",
     password: "",
@@ -45,6 +47,13 @@ function HrDashboard({ onLogout }) {
     department: "",
     designation: "",
     basicSalary: "",
+  });
+  const [newTask, setNewTask] = useState({
+    employeeId: "",
+    title: "",
+    description: "",
+    priority: "Medium",
+    dueDate: "",
   });
 
   useEffect(() => {
@@ -59,15 +68,19 @@ function HrDashboard({ onLogout }) {
     try {
       setLoading(true);
 
-      const [employeesRes, bestEmpRes, leavesRes] = await Promise.all([
-        axios.get(`${API_URL}/auth/employees`, getAuthHeaders()),
-        axios.get(`${API_URL}/scores/best-employee`, getAuthHeaders()),
-        axios.get(`${API_URL}/leaves/all?status=Pending`, getAuthHeaders()),
-      ]);
+      const [employeesRes, bestEmpRes, leavesRes, tasksRes] = await Promise.all(
+        [
+          axios.get(`${API_URL}/auth/employees`, getAuthHeaders()),
+          axios.get(`${API_URL}/scores/best-employee`, getAuthHeaders()),
+          axios.get(`${API_URL}/leaves/all?status=Pending`, getAuthHeaders()),
+          axios.get(`${API_URL}/tasks/all`, getAuthHeaders()),
+        ]
+      );
 
       setEmployees(employeesRes.data);
       setBestEmployee(bestEmpRes.data);
       setLeaveRequests(leavesRes.data);
+      setTasks(tasksRes.data);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -161,6 +174,83 @@ function HrDashboard({ onLogout }) {
     }
   };
 
+  const handleFireEmployee = async (employeeId, employeeName, e) => {
+    e.stopPropagation(); // Prevent triggering the card click
+
+    if (!employeeId) {
+      alert("Cannot fire this employee due to invalid data.");
+      return;
+    }
+
+    if (
+      window.confirm(
+        `Are you sure you want to fire ${employeeName}? This action cannot be undone.`
+      )
+    ) {
+      try {
+        await axios.delete(
+          `${API_URL}/auth/employees/${employeeId}`,
+          getAuthHeaders()
+        );
+
+        // Refresh employees list
+        fetchData();
+
+        // Clear selected employee if it was the fired one
+        if (selectedEmployee && selectedEmployee.employee_id === employeeId) {
+          setSelectedEmployee(null);
+          setEmployeeDetails(null);
+        }
+
+        alert(`${employeeName} has been fired successfully.`);
+      } catch (error) {
+        console.error("Error firing employee:", error);
+        alert("Failed to fire employee. Please try again.");
+      }
+    }
+  };
+
+  const handleAssignTask = async (e) => {
+    e.preventDefault();
+
+    if (!newTask.employeeId || !newTask.title || !newTask.description) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    try {
+      await axios.post(
+        `${API_URL}/tasks/assign`,
+        {
+          employeeId: newTask.employeeId,
+          title: newTask.title,
+          description: newTask.description,
+          priority: newTask.priority,
+          dueDate: newTask.dueDate || null,
+        },
+        getAuthHeaders()
+      );
+
+      // Reset form
+      setNewTask({
+        employeeId: "",
+        title: "",
+        description: "",
+        priority: "Medium",
+        dueDate: "",
+      });
+      setShowAssignTaskForm(false);
+
+      // Refresh tasks list
+      fetchData();
+
+      alert("Task assigned successfully!");
+    } catch (error) {
+      console.error("Error assigning task:", error);
+      alert("Failed to assign task. Please try again.");
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading dashboard...</div>;
   }
@@ -190,6 +280,12 @@ function HrDashboard({ onLogout }) {
           onClick={() => setActiveTab("employees")}
         >
           Employees
+        </button>
+        <button
+          className={activeTab === "tasks" ? "active" : ""}
+          onClick={() => setActiveTab("tasks")}
+        >
+          Tasks ({tasks.length})
         </button>
         <button
           className={activeTab === "leaves" ? "active" : ""}
@@ -362,7 +458,29 @@ function HrDashboard({ onLogout }) {
                       }`}
                       onClick={() => handleEmployeeClick(employee)}
                     >
-                      <h3>{employee.name}</h3>
+                      <div className="employee-card-header">
+                        <h3>{employee.name}</h3>
+                        <button
+                          className="fire-btn"
+                          onClick={(e) =>
+                            employee.employee_id
+                              ? handleFireEmployee(
+                                  employee.employee_id,
+                                  employee.name,
+                                  e
+                                )
+                              : null
+                          }
+                          disabled={!employee.employee_id}
+                          title={
+                            employee.employee_id
+                              ? `Fire ${employee.name}`
+                              : "Cannot fire this employee (invalid data)"
+                          }
+                        >
+                          🔥 Fire
+                        </button>
+                      </div>
                       <p>
                         <strong>Email:</strong> {employee.email}
                       </p>
