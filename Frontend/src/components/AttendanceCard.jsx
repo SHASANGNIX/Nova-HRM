@@ -1,35 +1,35 @@
 // frontend/src/components/AttendanceCard.jsx
-import React from 'react';
-import './AttendanceCard.css';
+import React from "react";
+import "./AttendanceCard.css";
 
-function AttendanceCard({ attendance }) {
+function AttendanceCard({ attendance, onMarkLogin, onMarkLogout }) {
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Present':
-        return '#4CAF50';
-      case 'Late':
-        return '#FF9800';
-      case 'Absent':
-        return '#F44336';
-      case 'Leave':
-        return '#2196F3';
+      case "Present":
+        return "#4CAF50";
+      case "Late":
+        return "#FF9800";
+      case "Absent":
+        return "#F44336";
+      case "Leave":
+        return "#2196F3";
       default:
-        return '#9E9E9E';
+        return "#9E9E9E";
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'Present':
-        return '✓';
-      case 'Late':
-        return '⏰';
-      case 'Absent':
-        return '✗';
-      case 'Leave':
-        return '🏖️';
+      case "Present":
+        return "✓";
+      case "Late":
+        return "⏰";
+      case "Absent":
+        return "✗";
+      case "Leave":
+        return "🏖️";
       default:
-        return '?';
+        return "?";
     }
   };
 
@@ -38,15 +38,17 @@ function AttendanceCard({ attendance }) {
       <div className="card-header">
         <h3>Today's Attendance</h3>
       </div>
-      
+
       <div className="card-body">
-        {attendance && attendance.status !== 'Not Marked' ? (
+        {attendance && attendance.status !== "Not Marked" ? (
           <>
-            <div 
+            <div
               className="status-badge"
               style={{ backgroundColor: getStatusColor(attendance.status) }}
             >
-              <span className="status-icon">{getStatusIcon(attendance.status)}</span>
+              <span className="status-icon">
+                {getStatusIcon(attendance.status)}
+              </span>
               <span className="status-text">{attendance.status}</span>
             </div>
 
@@ -56,7 +58,7 @@ function AttendanceCard({ attendance }) {
                   <span className="label">Login Time:</span>
                   <span className="value">{attendance.login_time}</span>
                 </div>
-                
+
                 {attendance.logout_time && (
                   <div className="time-item">
                     <span className="label">Logout Time:</span>
@@ -66,16 +68,23 @@ function AttendanceCard({ attendance }) {
               </div>
             )}
 
+            {!attendance.logout_time && attendance.status !== "Not Marked" && (
+              <button onClick={onMarkLogout} className="mark-btn logout-btn">
+                Mark Logout
+              </button>
+            )}
+
             {attendance.is_late && (
-              <div className="late-warning">
-                ⚠️ Late Login Detected
-              </div>
+              <div className="late-warning">⚠️ Late Login Detected</div>
             )}
           </>
         ) : (
           <div className="not-marked">
             <span className="icon">📝</span>
-            <p>Attendance will be marked automatically on login</p>
+            <p>Attendance not marked yet</p>
+            <button onClick={onMarkLogin} className="mark-btn login-btn">
+              Mark Login
+            </button>
           </div>
         )}
       </div>
