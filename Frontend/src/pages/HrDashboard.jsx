@@ -625,6 +625,193 @@ function HrDashboard({ onLogout }) {
         </div>
       )}
 
+      {activeTab === "tasks" && (
+        <div className="hr-content">
+          <div className="task-management">
+            <div className="management-header">
+              <h3>📋 Task Management</h3>
+              <button
+                className="assign-task-btn"
+                onClick={() => setShowAssignTaskForm(!showAssignTaskForm)}
+              >
+                {showAssignTaskForm ? "Cancel" : "+ Assign Task"}
+              </button>
+            </div>
+
+            {showAssignTaskForm && (
+              <div className="assign-task-form">
+                <h4>Assign New Task</h4>
+                <form onSubmit={handleAssignTask}>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Employee:</label>
+                      <select
+                        value={newTask.employeeId}
+                        onChange={(e) =>
+                          setNewTask({
+                            ...newTask,
+                            employeeId: e.target.value,
+                          })
+                        }
+                        required
+                      >
+                        <option value="">Select Employee</option>
+                        {employees
+                          .filter((emp) => emp.employee_id)
+                          .map((employee) => (
+                            <option
+                              key={employee.employee_id}
+                              value={employee.employee_id}
+                            >
+                              {employee.name} - {employee.department}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Priority:</label>
+                      <select
+                        value={newTask.priority}
+                        onChange={(e) =>
+                          setNewTask({
+                            ...newTask,
+                            priority: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Urgent">Urgent</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Title:</label>
+                      <input
+                        type="text"
+                        value={newTask.title}
+                        onChange={(e) =>
+                          setNewTask({
+                            ...newTask,
+                            title: e.target.value,
+                          })
+                        }
+                        required
+                        placeholder="Task title"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Due Date:</label>
+                      <input
+                        type="date"
+                        value={newTask.dueDate}
+                        onChange={(e) =>
+                          setNewTask({
+                            ...newTask,
+                            dueDate: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Description:</label>
+                    <textarea
+                      value={newTask.description}
+                      onChange={(e) =>
+                        setNewTask({
+                          ...newTask,
+                          description: e.target.value,
+                        })
+                      }
+                      required
+                      placeholder="Task description"
+                      rows="3"
+                    />
+                  </div>
+                  <div className="form-actions">
+                    <button type="submit" className="submit-btn">
+                      Assign Task
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAssignTaskForm(false)}
+                      className="cancel-btn"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            <div className="tasks-list">
+              <h4>All Tasks ({tasks.length})</h4>
+              {tasks.length === 0 ? (
+                <p>No tasks assigned yet</p>
+              ) : (
+                <div className="tasks-grid">
+                  {tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className={`task-card ${task.status
+                        .toLowerCase()
+                        .replace(" ", "-")}`}
+                    >
+                      <div className="task-card-header">
+                        <h4>{task.title}</h4>
+                        <span
+                          className={`priority-badge ${task.priority.toLowerCase()}`}
+                        >
+                          {task.priority}
+                        </span>
+                      </div>
+                      <div className="task-card-body">
+                        <p className="task-description">{task.description}</p>
+                        <div className="task-meta">
+                          <p>
+                            <strong>Assigned to:</strong> {task.employee_name}
+                          </p>
+                          <p>
+                            <strong>Department:</strong> {task.department}
+                          </p>
+                          <p>
+                            <strong>Status:</strong>
+                            <span
+                              className={`status-badge ${task.status
+                                .toLowerCase()
+                                .replace(" ", "-")}`}
+                            >
+                              {task.status}
+                            </span>
+                          </p>
+                          {task.due_date && (
+                            <p>
+                              <strong>Due:</strong>{" "}
+                              {new Date(task.due_date).toLocaleDateString()}
+                            </p>
+                          )}
+                          <p>
+                            <strong>Assigned by:</strong>{" "}
+                            {task.assigned_by_name || "HR"}
+                          </p>
+                          <p>
+                            <strong>Created:</strong>{" "}
+                            {new Date(task.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === "leaves" && (
         <div className="leave-requests">
           <h3>Pending Leave Requests</h3>
