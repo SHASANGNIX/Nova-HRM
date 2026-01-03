@@ -1,5 +1,6 @@
 // frontend/src/components/ScoreCard.jsx
 import React from 'react';
+import CircularProgress from './CircularProgress';
 import './ScoreCard.css';
 
 function ScoreCard({ score }) {
@@ -27,12 +28,13 @@ function ScoreCard({ score }) {
       <div className="card-body">
         {score && score.totalScore !== undefined ? (
           <>
-            <div
-              className={`score-circle ${getScoreGrade(score.totalScore).toLowerCase()}`}
-              style={{ borderColor: getScoreColor(score.totalScore) }}
-            >
-              <div className="score-value">{score.totalScore}</div>
-              <div className="score-grade">{getScoreGrade(score.totalScore)}</div>
+            <div className="score-circle-container">
+              <CircularProgress
+                value={score.totalScore}
+                max={100}
+                size={200}
+                label={getScoreGrade(score.totalScore)}
+              />
             </div>
 
             <div className="score-breakdown">

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_URL } from '../config';
 import './LeaveRequest.css';
-
-const API_URL = 'http://localhost:5000/api';
 
 function LeaveRequest() {
   const [activeSubTab, setActiveSubTab] = useState('apply');

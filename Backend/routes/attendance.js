@@ -245,4 +245,70 @@ router.post("/mark", verifyToken, verifyHR, async (req, res) => {
   }
 });
 
+// HR: Get company-wide analytics
+router.get("/analytics", verifyToken, verifyHR, async (req, res) => {
+  const db = req.app.locals.db;
+  const { month, year } = req.query;
+  const currentMonth = month || new Date().getMonth() + 1;
+  const currentYear = year || new Date().getFullYear();
+
+  try {
+    // Overall attendance stats
+    let attendanceQuery = `
+      SELECT 
+        COUNT(*) as total_records,
+        COUNT(CASE WHEN status = 'Present' OR status = 'Late' THEN 1 END) as present_count,
+        COUNT(CASE WHEN status = 'Absent' THEN 1 END) as absent_count,
+        COUNT(CASE WHEN is_late = true THEN 1 END) as late_count
+      FROM attendance
+      WHERE EXTRACT(MONTH FROM date) = $1
+      AND EXTRACT(YEAR FROM date) = $2
+    `;
+
+    const attendanceStats = await db.query(attendanceQuery, [
+      currentMonth,
+      currentYear,
+    ]);
+
+    // Department-wise attendance
+    const deptAttendance = await db.query(`
+      SELECT 
+        e.department,
+        COUNT(*) as total,
+        COUNT(CASE WHEN a.status = 'Present' OR a.status = 'Late' THEN 1 END) as present,
+        COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) as absent,
+        ROUND(AVG(CASE WHEN a.status = 'Present' OR a.status = 'Late' THEN 100 ELSE 0 END), 2) as attendance_rate
+      FROM attendance a
+      JOIN employees e ON a.employee_id = e.id
+      WHERE EXTRACT(MONTH FROM a.date) = $1
+      AND EXTRACT(YEAR FROM a.date) = $2
+      GROUP BY e.department
+      ORDER BY attendance_rate DESC
+    `, [currentMonth, currentYear]);
+
+    // Daily attendance trend (last 30 days)
+    const dailyTrend = await db.query(`
+      SELECT 
+        date,
+        COUNT(*) as total_employees,
+        COUNT(CASE WHEN status = 'Present' OR status = 'Late' THEN 1 END) as present_count
+      FROM attendance
+      WHERE date >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY date
+      ORDER BY date ASC
+    `);
+
+    res.json({
+      attendance: {
+        overall: attendanceStats.rows[0] || {},
+        byDepartment: deptAttendance.rows,
+        dailyTrend: dailyTrend.rows,
+      },
+    });
+  } catch (error) {
+    console.error("Get analytics error:", error);
+    res.status(500).json({ error: "Failed to get analytics" });
+  }
+});
+
 module.exports = router;

@@ -1,0 +1,8 @@
+node_modules
+.git
+.env.local
+.env.*.local
+*.log
+.DS_Store
+Nova-HRM.mp4
+

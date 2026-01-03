@@ -1,0 +1,19 @@
+{
+  "name": "nova-hrm",
+  "version": "1.0.0",
+  "description": "Nova HRM - Human Resource Management System",
+  "scripts": {
+    "build": "cd Frontend && npm install && npm run build",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd Frontend && npm run dev",
+    "install:all": "cd backend && npm install && cd ../Frontend && npm install"
+  },
+  "keywords": ["hrms", "hr", "management"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

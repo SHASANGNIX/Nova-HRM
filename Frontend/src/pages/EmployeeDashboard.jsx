@@ -1,15 +1,13 @@
 // frontend/src/pages/EmployeeDashboard.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { API_URL } from "../config";
 import "./EmployeeDashboard.css";
 import AttendanceCard from "../components/AttendanceCard";
 import TaskList from "../components/TaskList";
 import ScoreCard from "../components/ScoreCard";
 import CalendarView from "../components/CalendarView";
 import LeaveRequest from "../components/LeaveRequest";
-import "./EmployeeDashboard.css";
-
-const API_URL = "http://localhost:5000/api";
 
 function EmployeeDashboard({ onLogout }) {
   const [user, setUser] = useState(null);
@@ -110,6 +108,51 @@ function EmployeeDashboard({ onLogout }) {
     }
   };
 
+  const handleMarkLogin = async () => {
+    try {
+      await axios.post(
+        `${API_URL}/attendance/login`,
+        {},
+        getAuthHeaders()
+      );
+      // Refresh attendance data
+      const attendanceRes = await axios.get(
+        `${API_URL}/attendance/today`,
+        getAuthHeaders()
+      );
+      setAttendance(attendanceRes.data);
+      
+      // Also refresh score as it depends on attendance
+      const scoreRes = await axios.get(
+        `${API_URL}/scores/today`,
+        getAuthHeaders()
+      );
+      setScore(scoreRes.data);
+    } catch (error) {
+      console.error("Error marking login:", error);
+      alert("Failed to mark login. Please try again.");
+    }
+  };
+
+  const handleMarkLogout = async () => {
+    try {
+      await axios.post(
+        `${API_URL}/attendance/logout`,
+        {},
+        getAuthHeaders()
+      );
+      // Refresh attendance data
+      const attendanceRes = await axios.get(
+        `${API_URL}/attendance/today`,
+        getAuthHeaders()
+      );
+      setAttendance(attendanceRes.data);
+    } catch (error) {
+      console.error("Error marking logout:", error);
+      alert("Failed to mark logout. Please try again.");
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading dashboard...</div>;
   }
@@ -138,32 +181,40 @@ function EmployeeDashboard({ onLogout }) {
           className={activeTab === "overview" ? "active" : ""}
           onClick={() => setActiveTab("overview")}
         >
-          Overview
+          <span>📊</span>
+          <span>Overview</span>
         </button>
         <button
           className={activeTab === "tasks" ? "active" : ""}
           onClick={() => setActiveTab("tasks")}
         >
-          Tasks
+          <span>📋</span>
+          <span>Tasks</span>
         </button>
         <button
           className={activeTab === "calendar" ? "active" : ""}
           onClick={() => setActiveTab("calendar")}
         >
-          Calendar
+          <span>📅</span>
+          <span>Calendar</span>
         </button>
         <button
           className={activeTab === "leave" ? "active" : ""}
           onClick={() => setActiveTab("leave")}
         >
-          Leave Requests
+          <span>🏖️</span>
+          <span>Leave Requests</span>
         </button>
       </div>
 
       {activeTab === "overview" && (
         <div className="dashboard-grid">
           <div className="dashboard-row">
-            <AttendanceCard attendance={attendance} />
+            <AttendanceCard 
+              attendance={attendance} 
+              onMarkLogin={handleMarkLogin}
+              onMarkLogout={handleMarkLogout}
+            />
             <ScoreCard score={score} />
           </div>
 

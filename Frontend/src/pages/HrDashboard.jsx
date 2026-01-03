@@ -1,6 +1,8 @@
 // frontend/src/pages/HrDashboard.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { API_URL } from "../config";
+import CircularProgress from "../components/CircularProgress";
 import "./HrDashboard.css";
 import { Line, Bar } from "react-chartjs-2";
 import {
@@ -27,8 +29,6 @@ ChartJS.register(
   Legend
 );
 
-const API_URL = "http://localhost:5000/api";
-
 function HrDashboard({ onLogout }) {
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -38,6 +38,8 @@ function HrDashboard({ onLogout }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("employees");
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [showAddEmployeeForm, setShowAddEmployeeForm] = useState(false);
   const [showAssignTaskForm, setShowAssignTaskForm] = useState(false);
   const [newEmployee, setNewEmployee] = useState({
@@ -87,6 +89,46 @@ function HrDashboard({ onLogout }) {
       setLoading(false);
     }
   };
+
+  const fetchAnalytics = async () => {
+    try {
+      setAnalyticsLoading(true);
+      const [attendanceRes, taskRes, leaveRes, salaryRes, scoresRes] = await Promise.all([
+        axios.get(`${API_URL}/attendance/analytics`, getAuthHeaders()),
+        axios.get(`${API_URL}/tasks/analytics`, getAuthHeaders()),
+        axios.get(`${API_URL}/leaves/analytics`, getAuthHeaders()),
+        axios.get(`${API_URL}/salary/stats`, getAuthHeaders()),
+        axios.get(`${API_URL}/scores/all`, getAuthHeaders()),
+      ]);
+
+      // Calculate score statistics
+      const scores = scoresRes.data || [];
+      const avgScore = scores.length > 0
+        ? (scores.reduce((sum, s) => sum + parseFloat(s.total_score || 0), 0) / scores.length).toFixed(2)
+        : 0;
+
+      setAnalyticsData({
+        attendance: attendanceRes.data,
+        tasks: taskRes.data,
+        leaves: leaveRes.data,
+        salary: salaryRes.data,
+        scores: {
+          average: avgScore,
+          total: scores.length,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "analytics") {
+      fetchAnalytics();
+    }
+  }, [activeTab]);
 
   const fetchEmployeeDetails = async (employeeId) => {
     try {
@@ -279,25 +321,31 @@ function HrDashboard({ onLogout }) {
           className={activeTab === "employees" ? "active" : ""}
           onClick={() => setActiveTab("employees")}
         >
-          Employees
+          <span>👥</span>
+          <span>Employees</span>
         </button>
         <button
           className={activeTab === "tasks" ? "active" : ""}
           onClick={() => setActiveTab("tasks")}
         >
-          Tasks ({tasks.length})
+          <span>📋</span>
+          <span>Tasks</span>
+          <span className="tab-badge">{tasks.length}</span>
         </button>
         <button
           className={activeTab === "leaves" ? "active" : ""}
           onClick={() => setActiveTab("leaves")}
         >
-          Leave Requests ({leaveRequests.length})
+          <span>🏖️</span>
+          <span>Leave Requests</span>
+          <span className="tab-badge">{leaveRequests.length}</span>
         </button>
         <button
           className={activeTab === "analytics" ? "active" : ""}
           onClick={() => setActiveTab("analytics")}
         >
-          Analytics
+          <span>📊</span>
+          <span>Analytics</span>
         </button>
       </div>
 
@@ -580,24 +628,25 @@ function HrDashboard({ onLogout }) {
 
                 <div className="chart-card">
                   <h4>Performance Score</h4>
-                  <div className="stats">
-                    <div className="stat">
-                      <span>Average:</span>
-                      <strong>
-                        {employeeDetails.scores.stats?.average || 0}
-                      </strong>
+                  <div className="performance-score-display">
+                    <div className="score-circle-wrapper">
+                      <CircularProgress
+                        value={employeeDetails.scores.stats?.average || 0}
+                        max={100}
+                        size={150}
+                        showLabel={true}
+                        label="Average"
+                      />
                     </div>
-                    <div className="stat">
-                      <span>Highest:</span>
-                      <strong>
-                        {employeeDetails.scores.stats?.highest || 0}
-                      </strong>
-                    </div>
-                    <div className="stat">
-                      <span>Lowest:</span>
-                      <strong>
-                        {employeeDetails.scores.stats?.lowest || 0}
-                      </strong>
+                    <div className="score-stats-mini">
+                      <div className="stat-mini">
+                        <span>Highest:</span>
+                        <strong>{employeeDetails.scores.stats?.highest || 0}</strong>
+                      </div>
+                      <div className="stat-mini">
+                        <span>Lowest:</span>
+                        <strong>{employeeDetails.scores.stats?.lowest || 0}</strong>
+                      </div>
                     </div>
                   </div>
 
@@ -856,8 +905,329 @@ function HrDashboard({ onLogout }) {
 
       {activeTab === "analytics" && (
         <div className="analytics-overview">
-          <h3>Company-wide Analytics</h3>
-          <p>Analytics dashboard coming soon...</p>
+          <div className="analytics-header">
+            <h3>📊 Company-wide Analytics</h3>
+            <button onClick={fetchAnalytics} className="refresh-btn" disabled={analyticsLoading}>
+              {analyticsLoading ? "Loading..." : "🔄 Refresh"}
+            </button>
+          </div>
+
+          {analyticsLoading ? (
+            <div className="loading">Loading analytics...</div>
+          ) : analyticsData ? (
+            <>
+              {/* Key Metrics Cards */}
+              <div className="metrics-grid">
+                <div className="metric-card">
+                  <div className="metric-icon">👥</div>
+                  <div className="metric-content">
+                    <h4>Total Employees</h4>
+                    <p className="metric-value">{employees.length}</p>
+                  </div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-icon">💰</div>
+                  <div className="metric-content">
+                    <h4>Total Payroll</h4>
+                    <p className="metric-value">
+                      ${analyticsData.salary?.total_payroll
+                        ? parseFloat(analyticsData.salary.total_payroll).toLocaleString()
+                        : "0"}
+                    </p>
+                  </div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-icon">📈</div>
+                  <div className="metric-content">
+                    <h4>Avg Performance</h4>
+                    <div className="metric-progress-wrapper">
+                      <CircularProgress
+                        value={parseFloat(analyticsData.scores?.average || 0)}
+                        max={100}
+                        size={80}
+                        showLabel={false}
+                      />
+                      <p className="metric-value">{analyticsData.scores?.average || 0}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="metric-card">
+                  <div className="metric-icon">✅</div>
+                  <div className="metric-content">
+                    <h4>Task Completion</h4>
+                    <p className="metric-value">
+                      {analyticsData.tasks?.overall?.completion_rate || 0}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Charts Section */}
+              <div className="charts-section">
+                {/* Attendance Chart */}
+                <div className="chart-container">
+                  <h4>📅 Attendance Overview</h4>
+                  {analyticsData.attendance?.overall && (
+                    <div className="chart-content">
+                      <Bar
+                        data={{
+                          labels: ["Present", "Absent", "Late"],
+                          datasets: [
+                            {
+                              label: "Count",
+                              data: [
+                                analyticsData.attendance.overall.present_count || 0,
+                                analyticsData.attendance.overall.absent_count || 0,
+                                analyticsData.attendance.overall.late_count || 0,
+                              ],
+                              backgroundColor: [
+                                "rgba(76, 175, 80, 0.8)",
+                                "rgba(244, 67, 54, 0.8)",
+                                "rgba(255, 152, 0, 0.8)",
+                              ],
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          plugins: {
+                            legend: { display: false },
+                            title: { display: false },
+                          },
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Department Attendance */}
+                {analyticsData.attendance?.byDepartment?.length > 0 && (
+                  <div className="chart-container">
+                    <h4>🏢 Department-wise Attendance</h4>
+                    <div className="chart-content">
+                      <Bar
+                        data={{
+                          labels: analyticsData.attendance.byDepartment.map(
+                            (d) => d.department
+                          ),
+                          datasets: [
+                            {
+                              label: "Attendance Rate (%)",
+                              data: analyticsData.attendance.byDepartment.map(
+                                (d) => parseFloat(d.attendance_rate || 0)
+                              ),
+                              backgroundColor: "rgba(102, 126, 234, 0.8)",
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          plugins: {
+                            legend: { display: false },
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              max: 100,
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Task Statistics */}
+                {analyticsData.tasks?.overall && (
+                  <div className="chart-container">
+                    <h4>📋 Task Statistics</h4>
+                    <div className="chart-content">
+                      <Bar
+                        data={{
+                          labels: ["Completed", "Pending", "In Progress"],
+                          datasets: [
+                            {
+                              label: "Tasks",
+                              data: [
+                                analyticsData.tasks.overall.completed || 0,
+                                analyticsData.tasks.overall.pending || 0,
+                                analyticsData.tasks.overall.in_progress || 0,
+                              ],
+                              backgroundColor: [
+                                "rgba(76, 175, 80, 0.8)",
+                                "rgba(255, 152, 0, 0.8)",
+                                "rgba(33, 150, 243, 0.8)",
+                              ],
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          plugins: {
+                            legend: { display: false },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Leave Statistics */}
+                {analyticsData.leaves?.overall && (
+                  <div className="chart-container">
+                    <h4>🏖️ Leave Statistics</h4>
+                    <div className="chart-content">
+                      <Bar
+                        data={{
+                          labels: ["Approved", "Pending", "Rejected"],
+                          datasets: [
+                            {
+                              label: "Leaves",
+                              data: [
+                                analyticsData.leaves.overall.approved || 0,
+                                analyticsData.leaves.overall.pending || 0,
+                                analyticsData.leaves.overall.rejected || 0,
+                              ],
+                              backgroundColor: [
+                                "rgba(76, 175, 80, 0.8)",
+                                "rgba(255, 152, 0, 0.8)",
+                                "rgba(244, 67, 54, 0.8)",
+                              ],
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          plugins: {
+                            legend: { display: false },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Daily Attendance Trend */}
+                {analyticsData.attendance?.dailyTrend?.length > 0 && (
+                  <div className="chart-container">
+                    <h4>📈 Daily Attendance Trend (Last 30 Days)</h4>
+                    <div className="chart-content">
+                      <Line
+                        data={{
+                          labels: analyticsData.attendance.dailyTrend.map((d) =>
+                            new Date(d.date).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })
+                          ),
+                          datasets: [
+                            {
+                              label: "Present Employees",
+                              data: analyticsData.attendance.dailyTrend.map(
+                                (d) => d.present_count || 0
+                              ),
+                              borderColor: "rgba(76, 175, 80, 1)",
+                              backgroundColor: "rgba(76, 175, 80, 0.1)",
+                              tension: 0.4,
+                            },
+                            {
+                              label: "Total Employees",
+                              data: analyticsData.attendance.dailyTrend.map(
+                                (d) => d.total_employees || 0
+                              ),
+                              borderColor: "rgba(102, 126, 234, 1)",
+                              backgroundColor: "rgba(102, 126, 234, 0.1)",
+                              tension: 0.4,
+                            },
+                          ],
+                        }}
+                        options={{
+                          responsive: true,
+                          plugins: {
+                            legend: { display: true },
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                            },
+                          },
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Summary Tables */}
+              <div className="summary-section">
+                <div className="summary-card">
+                  <h4>💼 Salary Summary</h4>
+                  <div className="summary-content">
+                    <div className="summary-item">
+                      <span>Average Salary:</span>
+                      <strong>
+                        $
+                        {analyticsData.salary?.average_salary
+                          ? parseFloat(analyticsData.salary.average_salary).toLocaleString(
+                              undefined,
+                              { maximumFractionDigits: 2 }
+                            )
+                          : "0"}
+                      </strong>
+                    </div>
+                    <div className="summary-item">
+                      <span>Highest Salary:</span>
+                      <strong>
+                        $
+                        {analyticsData.salary?.highest_salary
+                          ? parseFloat(analyticsData.salary.highest_salary).toLocaleString()
+                          : "0"}
+                      </strong>
+                    </div>
+                    <div className="summary-item">
+                      <span>Lowest Salary:</span>
+                      <strong>
+                        $
+                        {analyticsData.salary?.lowest_salary
+                          ? parseFloat(analyticsData.salary.lowest_salary).toLocaleString()
+                          : "0"}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {analyticsData.tasks?.byPriority?.length > 0 && (
+                  <div className="summary-card">
+                    <h4>⚡ Task Priority Distribution</h4>
+                    <div className="summary-content">
+                      {analyticsData.tasks.byPriority.map((p) => (
+                        <div key={p.priority} className="summary-item">
+                          <span>{p.priority}:</span>
+                          <strong>{p.count}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {analyticsData.leaves?.byType?.length > 0 && (
+                  <div className="summary-card">
+                    <h4>🏖️ Leave Type Distribution</h4>
+                    <div className="summary-content">
+                      {analyticsData.leaves.byType.map((lt) => (
+                        <div key={lt.leave_type} className="summary-item">
+                          <span>{lt.leave_type}:</span>
+                          <strong>{lt.count}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="no-data">No analytics data available</div>
+          )}
         </div>
       )}
     </div>

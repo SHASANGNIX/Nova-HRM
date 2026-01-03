@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_URL } from '../config';
 import './LeaveManagement.css';
-
-const API_URL = 'http://localhost:5000/api';
 
 function LeaveManagement() {
   const [leaveRequests, setLeaveRequests] = useState([]);

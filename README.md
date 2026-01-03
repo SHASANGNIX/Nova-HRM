@@ -146,6 +146,49 @@ http://localhost:5173
 http://localhost:5000
 ```
 
+## 🚀 Deployment to Vercel
+
+This project is configured for deployment on Vercel.
+
+### Prerequisites
+- A Vercel account
+- A PostgreSQL database (e.g., from Vercel Postgres, Supabase, or Neon)
+
+### Environment Variables
+Set the following environment variables in your Vercel project settings:
+
+```
+DATABASE_URL=your_postgres_connection_string
+JWT_SECRET=your_jwt_secret_key
+NODE_ENV=production
+```
+
+### Deployment Steps
+
+1. **Install Vercel CLI** (optional, for local deployment):
+   ```bash
+   npm i -g vercel
+   ```
+
+2. **Deploy to Vercel**:
+   ```bash
+   vercel
+   ```
+   
+   Or connect your GitHub repository to Vercel for automatic deployments.
+
+3. **Configure Build Settings**:
+   - Build Command: `cd Frontend && npm install && npm run build`
+   - Output Directory: `Frontend/dist`
+   - Install Command: `npm run install:all`
+
+4. **API Routes**:
+   - All API routes are automatically available at `/api/*`
+   - The frontend is configured to use `/api` in production
+
+### Local Development
+For local development, the API will use `http://localhost:5000/api` by default. You can override this by setting the `VITE_API_URL` environment variable in your `.env` file.
+
 ## 🎥 Demo Video
 
 [▶ Watch Demo Video](Nova-HRM.mp4)

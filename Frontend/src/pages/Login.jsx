@@ -1,9 +1,8 @@
 // frontend/src/pages/Login.jsx
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_URL } from '../config';
 import './Login.css';
-
-const API_URL = 'http://localhost:5000/api';
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState('');

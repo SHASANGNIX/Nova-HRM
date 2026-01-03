@@ -336,4 +336,63 @@ router.get('/holidays', verifyToken, async (req, res) => {
   }
 });
 
+// HR: Get company-wide leave analytics
+router.get('/analytics', verifyToken, verifyHR, async (req, res) => {
+  const db = req.app.locals.db;
+  const { month, year } = req.query;
+  const currentMonth = month || new Date().getMonth() + 1;
+  const currentYear = year || new Date().getFullYear();
+
+  try {
+    // Overall leave stats
+    const overallStats = await db.query(`
+      SELECT 
+        COUNT(*) as total_leaves,
+        COUNT(CASE WHEN status = 'Approved' THEN 1 END) as approved,
+        COUNT(CASE WHEN status = 'Pending' THEN 1 END) as pending,
+        COUNT(CASE WHEN status = 'Rejected' THEN 1 END) as rejected,
+        COUNT(CASE WHEN leave_type = 'Paid Leave' THEN 1 END) as paid_leaves,
+        COUNT(CASE WHEN leave_type = 'Sick Leave' THEN 1 END) as sick_leaves
+      FROM leaves
+      WHERE EXTRACT(MONTH FROM start_date) = $1
+      AND EXTRACT(YEAR FROM start_date) = $2
+    `, [currentMonth, currentYear]);
+
+    // Department-wise leave stats
+    const deptStats = await db.query(`
+      SELECT 
+        e.department,
+        COUNT(l.id) as total_leaves,
+        COUNT(CASE WHEN l.status = 'Approved' THEN 1 END) as approved,
+        COUNT(CASE WHEN l.status = 'Pending' THEN 1 END) as pending
+      FROM leaves l
+      JOIN employees e ON l.employee_id = e.id
+      WHERE EXTRACT(MONTH FROM l.start_date) = $1
+      AND EXTRACT(YEAR FROM l.start_date) = $2
+      GROUP BY e.department
+      ORDER BY total_leaves DESC
+    `, [currentMonth, currentYear]);
+
+    // Leave type distribution
+    const leaveTypeStats = await db.query(`
+      SELECT 
+        leave_type,
+        COUNT(*) as count
+      FROM leaves
+      WHERE EXTRACT(MONTH FROM start_date) = $1
+      AND EXTRACT(YEAR FROM start_date) = $2
+      GROUP BY leave_type
+    `, [currentMonth, currentYear]);
+
+    res.json({
+      overall: overallStats.rows[0] || {},
+      byDepartment: deptStats.rows,
+      byType: leaveTypeStats.rows,
+    });
+  } catch (error) {
+    console.error('Get leave analytics error:', error);
+    res.status(500).json({ error: 'Failed to get leave analytics' });
+  }
+});
+
 module.exports = router;

@@ -1,0 +1,15 @@
+{
+  "name": "nova-hrm-api",
+  "version": "1.0.0",
+  "description": "Nova HRM API Serverless Functions",
+  "main": "index.js",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5"
+  }
+}
+

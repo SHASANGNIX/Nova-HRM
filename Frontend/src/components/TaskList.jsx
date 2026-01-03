@@ -28,7 +28,10 @@ function TaskList({ tasks = [], personalTasks = [], onTaskUpdate, onAddTask, com
     }
   };
 
-  const currentTasks = activeTab === 'assigned' ? tasks : personalTasks;
+  // In compact mode, show both assigned and personal tasks combined
+  const currentTasks = compact 
+    ? [...tasks, ...personalTasks].slice(0, 5)
+    : (activeTab === 'assigned' ? tasks : personalTasks);
   const completedCount = currentTasks.filter(t => t.status === 'Completed').length;
   const pendingCount = currentTasks.filter(t => t.status === 'Pending').length;
   const inProgressCount = currentTasks.filter(t => t.status === 'In Progress').length;
@@ -37,20 +40,26 @@ function TaskList({ tasks = [], personalTasks = [], onTaskUpdate, onAddTask, com
     <div className="task-list">
       <div className="task-header-section">
         <h3>Tasks</h3>
-        <div className="task-tabs">
-          <button
-            className={activeTab === 'assigned' ? 'active' : ''}
-            onClick={() => setActiveTab('assigned')}
-          >
-            Assigned ({tasks.length})
-          </button>
-          <button
-            className={activeTab === 'personal' ? 'active' : ''}
-            onClick={() => setActiveTab('personal')}
-          >
-            Personal ({personalTasks.length})
-          </button>
-        </div>
+        {!compact && (
+          <div className="task-tabs">
+            <button
+              className={activeTab === 'assigned' ? 'active' : ''}
+              onClick={() => setActiveTab('assigned')}
+            >
+              <span>📌</span>
+              <span>Assigned</span>
+              <span className="tab-count">{tasks.length}</span>
+            </button>
+            <button
+              className={activeTab === 'personal' ? 'active' : ''}
+              onClick={() => setActiveTab('personal')}
+            >
+              <span>📝</span>
+              <span>Personal</span>
+              <span className="tab-count">{personalTasks.length}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {!compact && (
@@ -74,7 +83,7 @@ function TaskList({ tasks = [], personalTasks = [], onTaskUpdate, onAddTask, com
         </div>
       )}
 
-      {activeTab === 'personal' && (
+      {!compact && activeTab === 'personal' && (
         <>
           {!showAddForm && (
             <button className="add-task-btn" onClick={() => setShowAddForm(true)}>

@@ -241,4 +241,60 @@ router.delete('/assigned/:id', verifyToken, verifyHR, async (req, res) => {
   }
 });
 
+// HR: Get company-wide task analytics
+router.get('/analytics', verifyToken, verifyHR, async (req, res) => {
+  const db = req.app.locals.db;
+
+  try {
+    // Overall task stats
+    const overallStats = await db.query(`
+      SELECT 
+        COUNT(*) as total_tasks,
+        COUNT(CASE WHEN status = 'Completed' THEN 1 END) as completed,
+        COUNT(CASE WHEN status = 'Pending' THEN 1 END) as pending,
+        COUNT(CASE WHEN status = 'In Progress' THEN 1 END) as in_progress,
+        ROUND(AVG(CASE WHEN status = 'Completed' THEN 100 ELSE 0 END), 2) as completion_rate
+      FROM tasks
+    `);
+
+    // Department-wise task stats
+    const deptStats = await db.query(`
+      SELECT 
+        e.department,
+        COUNT(t.id) as total_tasks,
+        COUNT(CASE WHEN t.status = 'Completed' THEN 1 END) as completed,
+        ROUND(AVG(CASE WHEN t.status = 'Completed' THEN 100 ELSE 0 END), 2) as completion_rate
+      FROM tasks t
+      JOIN employees e ON t.employee_id = e.id
+      GROUP BY e.department
+      ORDER BY completion_rate DESC
+    `);
+
+    // Priority distribution
+    const priorityStats = await db.query(`
+      SELECT 
+        priority,
+        COUNT(*) as count
+      FROM tasks
+      GROUP BY priority
+      ORDER BY 
+        CASE priority
+          WHEN 'Urgent' THEN 1
+          WHEN 'High' THEN 2
+          WHEN 'Medium' THEN 3
+          WHEN 'Low' THEN 4
+        END
+    `);
+
+    res.json({
+      overall: overallStats.rows[0] || {},
+      byDepartment: deptStats.rows,
+      byPriority: priorityStats.rows,
+    });
+  } catch (error) {
+    console.error('Get task analytics error:', error);
+    res.status(500).json({ error: 'Failed to get task analytics' });
+  }
+});
+
 module.exports = router;
