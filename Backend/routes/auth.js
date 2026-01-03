@@ -285,7 +285,7 @@ router.delete(
   }
 );
 
->>>>>>> 9df1bad69282f01a0d40945ae5c6176d48cc35cd
+
 // Export middleware for other routes
 module.exports = router;
 module.exports.verifyToken = verifyToken;
